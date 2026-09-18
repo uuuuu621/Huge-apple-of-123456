@@ -1,0 +1,17 @@
+# ============================================================
+#  使用说明：请复制本文件为 cookie.txt，再粘贴你自己的 Cookie
+# ============================================================
+#  1. 复制本文件，重命名为 cookie.txt
+#     Windows:  copy cookie.txt.example cookie.txt
+#  2. 浏览器登录 bilibili.com → F12 → 网络(Network) 面板
+#  3. 刷新页面，点任意 api.bilibili.com 的请求
+#  4. 在「请求头 Request Headers」里找到 Cookie 字段，整段复制
+#  5. 粘贴到 cookie.txt 本文件的下一行
+#
+#  示例（请替换为你的真实值）：
+#  SESSDATA=你的值; bili_jct=你的值; DedeUserID=你的uid; DedeUserID__ckMd5=你的值
+#
+#  ⚠ cookie.txt 已被 .gitignore 忽略，不会被提交到 GitHub；
+#     本项目不内置任何 Cookie，请自行获取。
+# ============================================================
+

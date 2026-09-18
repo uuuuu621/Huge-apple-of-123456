@@ -1,0 +1,23 @@
+# ============ 敏感信息（绝不提交） ============
+# B 站登录 Cookie（含 SESSDATA），每人自己填
+cookie.txt
+
+# ============ 抓取 / 分析产物（含真实用户数据） ============
+舆情报告/
+demo/
+
+# ============ Python ============
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ============ 系统 / 编辑器 ============
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

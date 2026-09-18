@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>舆情分析工作台</title>
+<style>
+  :root {
+    --bg: #0e1117; --panel: #161b24; --panel2: #1d2430; --border: #2a3342;
+    --text: #e6e8ee; --muted: #8b93a5; --accent: #4f8cff; --accent2: #22c1a3;
+    --green: #2ecc71; --yellow: #f1c40f; --red: #ff5d5d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    font-size: 14px; line-height: 1.5;
+  }
+  header {
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(180deg, #141a24, #0e1117);
+  }
+  header .logo {
+    width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    font-weight: 700; color: #fff; font-size: 18px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+
+  main { display: grid; grid-template-columns: 400px 1fr; gap: 16px; padding: 16px 24px; align-items: start; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+  .panel h2 { font-size: 14px; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; }
+  .panel h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .panel .body { padding: 16px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .field .hint { color: var(--muted); font-size: 11px; margin-top: 3px; }
+  input[type=text], input[type=number], input[type=date], select {
+    width: 100%; padding: 9px 11px; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input:disabled { opacity: .45; cursor: not-allowed; }
+
+  .row { display: flex; gap: 10px; }
+  .row > .field { flex: 1; }
+
+  .seg { display: flex; background: var(--panel2); border-radius: 8px; padding: 3px; gap: 3px; }
+  .seg label { flex: 1; text-align: center; padding: 7px 0; border-radius: 6px; cursor: pointer;
+    color: var(--muted); font-size: 13px; transition: .15s; }
+  .seg input { display: none; }
+  .seg input:checked + span { color: #fff; }
+  .seg label:has(input:checked) { background: var(--accent); color: #fff; }
+
+  .check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); }
+  .check input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .check.disabled { opacity: .45; }
+
+  .platforms { display: flex; gap: 8px; flex-wrap: wrap; }
+  .plat { padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
+    cursor: default; display: flex; align-items: center; gap: 6px; }
+  .plat.on { border-color: var(--accent); background: rgba(79,140,255,.1); color: var(--accent); }
+  .plat.off { color: var(--muted); }
+  .plat .tag { font-size: 10px; background: var(--panel2); padding: 1px 5px; border-radius: 4px; color: var(--muted); }
+
+  .btn {
+    width: 100%; padding: 13px; border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), #3b6fd6); color: #fff; font-size: 15px;
+    font-weight: 600; transition: .15s; letter-spacing: 1px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* progress */
+  .stepper { display: flex; gap: 4px; margin-bottom: 16px; }
+  .step { flex: 1; text-align: center; position: relative; padding-top: 26px; font-size: 11px; color: var(--muted); }
+  .step::before {
+    content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 14px; height: 14px; border-radius: 50%; background: var(--panel2);
+    border: 2px solid var(--border); z-index: 2;
+  }
+  .step::after { content: ""; position: absolute; top: 14px; left: calc(50% + 10px);
+    width: calc(100% - 20px); height: 2px; background: var(--border); }
+  .step:last-child::after { display: none; }
+  .step.done { color: var(--green); }
+  .step.done::before { background: var(--green); border-color: var(--green); }
+  .step.done::after { background: var(--green); }
+  .step.active { color: var(--accent); font-weight: 600; }
+  .step.active::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px rgba(79,140,255,.2); }
+
+  .bar-wrap { height: 8px; background: var(--panel2); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  .bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .3s; }
+  .bar-text { text-align: right; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+  .console {
+    background: #0a0d12; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; height: 220px; overflow-y: auto; font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px; color: #a9b2c3;
+  }
+  .console .line { margin: 2px 0; word-break: break-all; }
+  .console .t { color: #55637a; margin-right: 8px; }
+  .console .err { color: var(--red); }
+
+  /* results */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .card { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .card .v { font-size: 24px; font-weight: 700; }
+  .card .k { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .badge.green { background: rgba(46,204,113,.15); color: var(--green); }
+  .badge.yellow { background: rgba(241,196,15,.15); color: var(--yellow); }
+  .badge.red { background: rgba(255,93,93,.15); color: var(--red); }
+
+  .result-block { margin-top: 16px; }
+  .result-block h3 { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-weight: 600; background: var(--panel2); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tagchip { padding: 3px 10px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--border);
+    font-size: 12px; white-space: nowrap; }
+
+  .links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text); text-decoration: none;
+    font-size: 13px; transition: .15s; }
+  .link:hover { border-color: var(--accent); color: var(--accent); }
+  .link.primary { background: rgba(79,140,255,.12); border-color: var(--accent); color: var(--accent); }
+
+  iframe { width: 100%; height: 620px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+
+  .markdown { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px;
+    overflow: auto; max-height: 700px; font-size: 13.5px; }
+  .markdown h1 { font-size: 20px; margin: 8px 0 12px; }
+  .markdown h2 { font-size: 16px; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .markdown p { margin: 6px 0; }
+  .markdown table { margin: 10px 0; }
+  .markdown blockquote { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--muted); margin: 8px 0; }
+  .markdown strong { color: #fff; }
+  .markdown ul { padding-left: 20px; }
+  .markdown li { margin: 3px 0; }
+
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); }
+  .section-title { font-size: 12px; color: var(--muted); margin: 18px 0 8px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">舆</div>
+  <div>
+    <h1>舆情分析工作台</h1>
+    <div class="sub">搜索 → 抓取 → 清洗 → 分词 → 打标 → 分析 → 报告，一键全流程</div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ 左侧：任务配置 ============ -->
+  <aside class="panel" id="form-panel">
+    <h2><span class="dot"></span>任务配置</h2>
+    <div class="body">
+
+      <div class="field">
+        <label>检索模式</label>
+        <div class="seg">
+          <label><input type="radio" name="search_mode" value="keyword" checked><span>按关键词</span></label>
+          <label><input type="radio" name="search_mode" value="user"><span>按 UP 主发布</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>事件主体 / 关键词（空格分隔多词）</label>
+        <input type="text" id="query" placeholder="如：星启模式 虚构叙事">
+        <div class="check" style="margin-top:8px">
+          <input type="checkbox" id="fuzzy" checked> <label for="fuzzy" style="cursor:pointer">模糊检索</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>目标平台</label>
+        <div class="platforms">
+          <span class="plat on">▣ B站 <span class="tag">已接入</span></span>
+          <span class="plat off">□ 微博 <span class="tag">待接入</span></span>
+          <span class="plat off">□ 抖音 <span class="tag">待接入</span></span>
+          <span class="plat off">□ 小红书 <span class="tag">待接入</span></span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field"><label>开始时间</label><input type="date" id="start_time"></div>
+        <div class="field"><label>结束时间</label><input type="date" id="end_time"></div>
+      </div>
+
+      <div class="section-title">抓取规模</div>
+      <div class="row">
+        <div class="field"><label>视频数量</label><input type="number" id="video_count" value="20" min="1" max="200"></div>
+        <div class="field"><label>每视频主评论数</label><input type="number" id="comments_per_video" value="1000" min="1"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>目标有效条数</label><input type="number" id="target_valid_count" value="500" min="1"></div>
+        <div class="field"><label>楼中楼条数/主评论</label><input type="number" id="replies_per_comment" value="50" min="0"></div>
+      </div>
+      <div class="check" style="margin-bottom:14px">
+        <input type="checkbox" id="capture_replies" checked>
+        <label for="capture_replies" style="cursor:pointer">抓取楼中楼评论</label>
+      </div>
+
+      <div class="section-title">分析配置</div>
+      <div class="field">
+        <label>研判阈值（负面占比 ≥ 此值判高危，%）</label>
+        <input type="number" id="risk_threshold" value="40" min="1" max="100">
+      </div>
+
+      <div class="field">
+        <div class="check">
+          <input type="checkbox" id="llm_enabled" checked>
+          <label for="llm_enabled" style="cursor:pointer">启用 LLM 复核（OpenAI 兼容接口）</label>
+        </div>
+        <div id="llm-fields" style="margin-top:8px">
+          <div class="field"><label>Base URL</label><input type="text" id="llm_base_url" placeholder="https://api.deepseek.com/v1"></div>
+          <div class="field"><label>Model</label><input type="text" id="llm_model" placeholder="deepseek-chat"></div>
+          <div class="field"><label>API Key</label><input type="text" id="llm_api_key" placeholder="sk-..."></div>
+          <div class="field"><label>抽样比例</label><input type="number" id="llm_sample_rate" value="0.1" min="0.05" max="1" step="0.05"></div>
+        </div>
+      </div>
+
+      <div class="section-title">执行</div>
+      <div class="check" style="margin-bottom:12px">
+        <input type="checkbox" id="demo">
+        <label for="demo" style="cursor:pointer">使用演示数据（无需 Cookie，快速体验全流程）</label>
+      </div>
+      <div class="hint muted" style="margin-bottom:12px; font-size:11px">
+        真实抓取需在项目根目录 <code>cookie.txt</code> 填入 B 站登录 Cookie（含 SESSDATA）。
+      </div>
+      <button class="btn" id="run-btn" onclick="execute()">▶ 执行任务</button>
+    </div>
+  </aside>
+
+  <!-- ============ 右侧：进度 + 结果 ============ -->
+  <section class="panel">
+    <h2><span class="dot"></span>执行进度与结果</h2>
+    <div class="body">
+
+      <div class="stepper" id="stepper">
+        <div class="step" data-s="环境准备">环境准备</div>
+        <div class="step" data-s="数据抓取">数据抓取</div>
+        <div class="step" data-s="数据清洗">数据清洗</div>
+        <div class="step" data-s="分词打标">分词打标</div>
+        <div class="step" data-s="量化分析">量化分析</div>
+        <div class="step" data-s="报告输出">报告输出</div>
+        <div class="step" data-s="归档">归档</div>
+      </div>
+
+      <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+      <div class="bar-text" id="bar-text">等待任务…</div>
+
+      <div class="console" id="console"></div>
+
+      <div id="result-area" class="hidden" style="margin-top:20px">
+        <div class="cards" id="cards"></div>
+
+        <div class="result-block" id="keynodes-block">
+          <h3>关键传播节点 Top5</h3>
+          <table id="keynodes-table"></table>
+        </div>
+
+        <div class="result-block" id="wordfreq-block">
+          <h3>热词 Top 30</h3>
+          <div class="tags" id="wordfreq-tags"></div>
+        </div>
+
+        <div class="result-block" id="timeline-block">
+          <h3>声量时序（按天）</h3>
+          <table id="timeline-table"></table>
+        </div>
+
+        <div class="result-block">
+          <h3>输出文件</h3>
+          <div class="links" id="download-links"></div>
+        </div>
+
+        <div class="result-block" id="report-block">
+          <h3>报告预览（Markdown）</h3>
+          <div class="markdown" id="report-md"></div>
+        </div>
+
+        <div class="result-block" id="interactive-block">
+          <h3>交互式图表</h3>
+          <iframe id="interactive-frame"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const STAGES = ["环境准备", "数据抓取", "数据清洗", "分词打标", "量化分析", "报告输出", "归档"];
+const STAGE_MAP = { "抓取": 1, "清洗": 2, "打标": 3, "分析": 4, "报告": 5, "归档": 6 };
+let es = null;
+
+function collectConfig() {
+  return {
+    search_mode: document.querySelector('input[name="search_mode"]:checked').value,
+    query: document.getElementById('query').value.trim(),
+    fuzzy: document.getElementById('fuzzy').checked,
+    platforms: ['bilibili'],
+    start_time: document.getElementById('start_time').value,
+    end_time: document.getElementById('end_time').value,
+    video_count: parseInt(document.getElementById('video_count').value) || 20,
+    comments_per_video: parseInt(document.getElementById('comments_per_video').value) || 1000,
+    capture_replies: document.getElementById('capture_replies').checked,
+    replies_per_comment: parseInt(document.getElementById('replies_per_comment').value) || 50,
+    target_valid_count: parseInt(document.getElementById('target_valid_count').value) || 500,
+    risk_threshold: parseInt(document.getElementById('risk_threshold').value) || 40,
+    llm_enabled: document.getElementById('llm_enabled').checked,
+    llm_sample_rate: parseFloat(document.getElementById('llm_sample_rate').value) || 0.1,
+    llm_base_url: document.getElementById('llm_base_url').value.trim(),
+    llm_api_key: document.getElementById('llm_api_key').value.trim(),
+    llm_model: document.getElementById('llm_model').value.trim(),
+    demo: document.getElementById('demo').checked,
+  };
+}
+
+function resetUI() {
+  document.getElementById('result-area').classList.add('hidden');
+  document.getElementById('console').innerHTML = '';
+  document.getElementById('bar').style.width = '0%';
+  document.getElementById('bar-text').textContent = '任务启动…';
+  document.querySelectorAll('.step').forEach(s => { s.classList.remove('done', 'active'); });
+  document.getElementById('run-btn').disabled = true;
+}
+
+async function execute() {
+  const cfg = collectConfig();
+  if (!cfg.query && !cfg.demo) {
+    alert('请填写「事件主体 / 关键词」，或勾选「使用演示数据」。');
+    return;
+  }
+  if (cfg.llm_enabled && cfg.llm_base_url && (!cfg.llm_api_key || !cfg.llm_model)) {
+    if (!confirm('LLM 已配置 Base URL 但缺 API Key / Model，将跳过 LLM 复核。继续？')) return;
+  }
+  resetUI();
+  addLog('正在创建任务…');
+  try {
+    const r = await fetch('/api/task', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg)
+    });
+    const data = await r.json();
+    es = new EventSource(`/api/task/${data.task_id}/events`);
+    es.onmessage = ev => handleEvent(JSON.parse(ev.data));
+  } catch (e) {
+    addLog('请求失败：' + e.message, true);
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+function handleEvent(e) {
+  if (e.event === 'log') addLog(e.message);
+  else if (e.event === 'stage') setStage(e.stage, e.message, e.percent);
+  else if (e.event === 'progress') { setStage(e.stage, e.message, e.percent); }
+  else if (e.event === 'done') { finish(e.result); es.close(); }
+  else if (e.event === 'error') { addLog('❌ ' + e.message, true); setBar(0); document.getElementById('run-btn').disabled = false; es.close(); }
+}
+
+function setStage(stage, msg, percent) {
+  const idx = STAGE_MAP[stage] ?? 0;
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.classList.toggle('done', i < idx);
+    s.classList.toggle('active', i === idx);
+  });
+  if (msg) addLog(msg);
+  if (percent != null) setBar(percent);
+}
+
+function setBar(p) {
+  document.getElementById('bar').style.width = p + '%';
+  document.getElementById('bar-text').textContent = Math.round(p) + '%';
+}
+
+function addLog(msg, isErr) {
+  const c = document.getElementById('console');
+  const line = document.createElement('div');
+  line.className = 'line' + (isErr ? ' err' : '');
+  const t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  line.innerHTML = `<span class="t">[${t}]</span>${escapeHtml(msg)}`;
+  c.appendChild(line);
+  c.scrollTop = c.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function finish(r) {
+  setBar(100);
+  addLog('✅ 任务完成');
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('result-area').classList.remove('hidden');
+
+  // 概要卡片
+  const ed = r.emotion_dist || {};
+  const cards = document.getElementById('cards');
+  const riskCls = { '健康': 'green', '关注': 'yellow', '高危': 'red' }[r.risk_level] || 'green';
+  cards.innerHTML = `
+    <div class="card"><div class="v">${r.total}</div><div class="k">有效样本量</div></div>
+    <div class="card"><div class="v">${r.neg_ratio}%</div><div class="k">负面占比</div></div>
+    <div class="card"><div class="v"><span class="badge ${riskCls}">${r.risk_level}</span></div><div class="k">风险等级</div></div>
+    <div class="card"><div class="v">${ed['正']||0}/${ed['中']||0}/${ed['负']||0}</div><div class="k">正 / 中 / 负</div></div>
+  `;
+
+  // 关键节点
+  const kt = document.getElementById('keynodes-table');
+  kt.innerHTML = `<tr><th>#</th><th>作者</th><th>粉丝</th><th>点赞</th><th>评论</th><th>情感</th><th>摘要</th></tr>` +
+    (r.key_nodes || []).map((k, i) =>
+      `<tr><td>${i+1}</td><td>${escapeHtml(k.name_hash||'—')}</td><td>${fmtFans(k.fans)}</td>` +
+      `<td>${k.likes}</td><td>${k.rcount}</td><td>${k.sentiment}</td><td>${escapeHtml(k.content||'')}</td></tr>`
+    ).join('');
+
+  // 热词
+  const wf = r.word_freq_top30 || [];
+  const maxW = wf.length ? wf[0][1] : 1;
+  document.getElementById('wordfreq-tags').innerHTML = wf.map(([w, c]) =>
+    `<span class="tagchip" style="font-size:${11 + Math.round(10 * c / maxW)}px">${escapeHtml(w)}<span class="muted"> ${c}</span></span>`
+  ).join('');
+
+  // 时序
+  const tl = r.timeline || [];
+  document.getElementById('timeline-table').innerHTML =
+    `<tr><th>日期</th><th>总声量</th><th>负面声量</th></tr>` +
+    tl.map(([d, t, n]) => `<tr><td>${d}</td><td>${t}</td><td>${n}</td></tr>`).join('');
+
+  // 下载链接
+  const rel = r.rel_dir;
+  const links = [
+    ['📄 Markdown 报告', `${rel}/report.md`, 'primary'],
+    ['📝 Word 报告', `${rel}/report.docx`, ''],
+    ['📊 交互图表', `${rel}/图表/interactive.html`, ''],
+    ['📦 分析结果 Excel', `${rel}/分析结果.xlsx`, ''],
+    ['💾 清洗标注 CSV', `${rel}/评论_清洗标注.csv`, ''],
+    ['🗂️ 原始数据 CSV', `${rel}/评论_原始.csv`, ''],
+  ];
+  document.getElementById('download-links').innerHTML = links.map(([t, p, c]) =>
+    `<a class="link ${c}" href="/files/${p}" target="_blank">${t}</a>`).join('');
+
+  // 报告预览
+  fetch(`/files/${rel}/report.md`).then(res => res.text()).then(md => {
+    document.getElementById('report-md').innerHTML = renderMarkdown(md);
+  }).catch(() => {});
+
+  // 交互图表 iframe
+  const frame = document.getElementById('interactive-frame');
+  if (r.interactive_html) { frame.src = `/files/${rel}/图表/interactive.html`; document.getElementById('interactive-block').classList.remove('hidden'); }
+  else { document.getElementById('interactive-block').classList.add('hidden'); }
+}
+
+function fmtFans(v) { return (v == null || v === '' || v === '—') ? '—' : Number(v).toLocaleString(); }
+
+/* 极简 Markdown 渲染（覆盖报告用到的语法） */
+function renderMarkdown(md) {
+  return mdToHtml(md);
+}
+
+function mdToHtml(md) {
+  const lines = md.split('\n');
+  let html = '';
+  let tableBuf = null;
+  const flushTable = () => { if (tableBuf) { html += tableBuf + '</table>'; tableBuf = null; } };
+  for (let line of lines) {
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+      if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue; // 分隔行
+      const isHead = tableBuf === null;
+      if (isHead) tableBuf = '<table><tr>' + cells.map(c => `<th>${inline(c)}</th>`).join('') + '</tr>';
+      else tableBuf += '<tr>' + cells.map(c => `<td>${inline(c)}</td>`).join('') + '</tr>';
+      continue;
+    } else { flushTable(); }
+    if (/^#\s/.test(line)) { html += `<h1>${inline(line.replace(/^#\s*/, ''))}</h1>`; }
+    else if (/^##\s/.test(line)) { html += `<h2>${inline(line.replace(/^##\s*/, ''))}</h2>`; }
+    else if (/^###\s/.test(line)) { html += `<h3>${inline(line.replace(/^###\s*/, ''))}</h3>`; }
+    else if (/^[-*]\s/.test(line)) { html += `<ul><li>${inline(line.replace(/^[-*]\s/, ''))}</li></ul>`; }
+    else if (/^\d+\.\s/.test(line)) { html += `<ol><li>${inline(line.replace(/^\d+\.\s/, ''))}</li></ol>`; }
+    else if (/^---\s*$/.test(line)) { html += '<hr>'; }
+    else if (line.trim() === '') { html += ''; }
+    else { html += `<p>${inline(line)}</p>`; }
+  }
+  flushTable();
+  return html;
+}
+function inline(s) {
+  return escapeHtml(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+</script>
+</body>
+</html>

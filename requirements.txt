@@ -1,0 +1,17 @@
+# 舆情分析工作台 依赖清单
+flask>=3.0
+requests>=2.31
+pandas>=2.0
+openpyxl>=3.1
+jieba>=0.42
+snownlp>=0.12
+matplotlib>=3.8
+wordcloud>=1.9
+python-docx>=1.1
+pyecharts>=2.0
+numpy>=1.24
+
+# 以下为可选依赖：本工作台的词频 / 共现分析已用纯 Python 实现，
+# 不装也能跑；如需要 sklearn 的 TF-IDF / 聚类增强可选择性安装：
+# scikit-learn>=1.4
+# scipy>=1.12
